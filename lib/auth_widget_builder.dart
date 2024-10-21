@@ -9,23 +9,31 @@ import 'package:provider/provider.dart';
 * need to be available by all downstream widgets.
 * Thus, this widget builder is a must to live above [MaterialApp].
 * As we rely on uid to decide which main screen to display (eg: Home or Sign In),
-* this class will helps to create all providers needed that depends on
+* this class will help to create all providers needed that depend on
 * the user logged data uid.
  */
 class AuthWidgetBuilder extends StatelessWidget {
-  const AuthWidgetBuilder(
-      {required Key key, required this.builder, required this.databaseBuilder})
-      : super(key: key);
+  const AuthWidgetBuilder({
+    Key? key, // Make key optional
+    required this.builder,
+    required this.databaseBuilder,
+  }) : super(key: key);
+
   final Widget Function(BuildContext, AsyncSnapshot<UserModel>) builder;
   final FirestoreDatabase Function(BuildContext context, String uid)
-  databaseBuilder;
+      databaseBuilder;
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthProvider>(context, listen: false);
+    final authService = AuthProvider();
     return StreamBuilder<UserModel>(
       stream: authService.user,
       builder: (BuildContext context, AsyncSnapshot<UserModel> snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Error: ${snapshot.error}')); // Handle errors
+        }
+
         final UserModel? user = snapshot.data;
         if (user != null) {
           /*
@@ -43,7 +51,9 @@ class AuthWidgetBuilder extends StatelessWidget {
             child: builder(context, snapshot),
           );
         }
-        return builder(context, snapshot);
+
+        return builder(
+            context, snapshot); // Return builder even if user is null
       },
     );
   }

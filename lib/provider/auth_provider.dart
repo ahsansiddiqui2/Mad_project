@@ -1,5 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:book_shopping_app/model/user_model.dart';
 
 enum Status {
@@ -9,104 +12,140 @@ enum Status {
   Unauthenticated,
   Registering
 }
-/*
-The UI will depends on the Status to decide which screen/action to be done.
-- Uninitialized - Checking user is logged or not, the Splash Screen will be shown
-- Authenticated - User is authenticated successfully, Home Page will be shown
-- Authenticating - Sign In button just been pressed, progress bar will be shown
-- Unauthenticated - User is not authenticated, login page will be shown
-- Registering - User just pressed registering, progress bar will be shown
-Take note, this is just an idea. You can remove or further add more different
-status for your UI or widgets to listen.
- */
 
 class AuthProvider extends ChangeNotifier {
-  //Firebase Auth object
-  late FirebaseAuth _auth;
-
-  //Default status
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Status _status = Status.Uninitialized;
 
   Status get status => _status;
 
+  // Stream for auth state changes, converting Firebase User to your UserModel
   Stream<UserModel> get user => _auth.authStateChanges().map(_userFromFirebase);
 
   AuthProvider() {
-    //initialise object
-    _auth = FirebaseAuth.instance;
-
-    //listener for authentication changes such as user sign in and sign out
     _auth.authStateChanges().listen(onAuthStateChanged);
   }
 
-  //Create user object based on the given User
+  // Create a UserModel from Firebase User
   UserModel _userFromFirebase(User? user) {
     if (user == null) {
       return UserModel(displayName: 'Null', uid: 'null');
     }
-
     return UserModel(
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        phoneNumber: user.phoneNumber,
-        photoUrl: user.photoURL);
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      phoneNumber: user.phoneNumber,
+      photoUrl: user.photoURL,
+    );
   }
 
-  //Method to detect live auth changes such as user sign in and sign out
+  // Handle auth state changes
   Future<void> onAuthStateChanged(User? firebaseUser) async {
     if (firebaseUser == null) {
       _status = Status.Unauthenticated;
+      print('User is unauthenticated.');
     } else {
-      _userFromFirebase(firebaseUser);
       _status = Status.Authenticated;
+      print('User is authenticated with UID: ${firebaseUser.uid}');
     }
     notifyListeners();
   }
 
-  //Method for new user registration using email and password
-  Future<UserModel> registerWithEmailAndPassword(
-      String email, String password) async {
+  //final FirebaseAuth _auth = FirebaseAuth.instance;
+  Future<User?> singup(String email, String password) async {
     try {
-      _status = Status.Registering;
-      notifyListeners();
-      final UserCredential result = await _auth.createUserWithEmailAndPassword(
+      final UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+      return userCredential.user;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Sing up failed:$e");
+      }
+      return null;
+    }
+  }
+
+  // Sign in with email and password
+  // Future<UserCredential?> signInWithEmailAndPassword(
+  // String email, String password) async {
+  // try {
+  //_status = Status.Authenticating;
+  //notifyListeners();
+  //final UserCredential result = await _auth.signInWithEmailAndPassword(
+  //  email: email, password: password);
+  // print("Sign-in successful for user: ${result.user?.email}");
+  // return result; // Return the UserCredential
+  // } catch (e) {
+  // Check the type of error
+  //  if (e is FirebaseAuthException) {
+  //   switch (e.code) {
+  //    case 'user-not-found':
+  //    print("No user found for that email.");
+  //  break;
+  // case 'wrong-password':
+  //  print("Wrong password provided for that user.");
+  //  break;
+  // case 'invalid-email':
+  //  print("The email address is not valid.");
+  //  break;
+  // default:
+  //    print("Error during sign-in: $e");
+  // }
+  //  }
+  // _status = Status.Unauthenticated;
+  // notifyListeners();
+  //  return null; // Return null on error
+  //  }
+  // }
+  Future<User?> signin(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-
-      return _userFromFirebase(result.user);
+      return userCredential.user;
     } catch (e) {
-      print("Error on the new user registration = " + e.toString());
-      _status = Status.Unauthenticated;
-      notifyListeners();
-      return UserModel(displayName: 'Null', uid: 'null');
+      if (e is FirebaseAuthException) {
+        // Handle Firebase Authentication specific errors
+        switch (e.code) {
+          case 'invalid-email':
+            print('The email address is badly formatted.');
+            break;
+          case 'user-not-found':
+            print('No user found for that email.');
+            break;
+          case 'wrong-password':
+            print('Wrong password provided for that user.');
+            break;
+          default:
+            print('Firebase Auth error: ${e.message}');
+        }
+      } else {
+        print('An unknown error occurred: $e');
+      }
+      return null;
     }
   }
 
-  //Method to handle user sign in using email and password
-  Future<bool> signInWithEmailAndPassword(String email, String password) async {
-    try {
-      _status = Status.Authenticating;
-      notifyListeners();
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      return true;
-    } catch (e) {
-      print("Error on the sign in = " + e.toString());
-      _status = Status.Unauthenticated;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  //Method to handle password reset email
+  // Send password reset email
   Future<void> sendPasswordResetEmail(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      print("Password reset email sent to: $email");
+    } catch (e) {
+      print("Error in sending password reset email: $e");
+    }
   }
 
-  //Method to handle user signing out
-  Future signOut() async {
-    _auth.signOut();
-    _status = Status.Unauthenticated;
-    notifyListeners();
-    return Future.delayed(Duration.zero);
+  // Sign out the user
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      _status = Status.Unauthenticated;
+      notifyListeners();
+      print('User signed out.');
+    } catch (e) {
+      print("Error during sign-out: $e");
+    }
   }
 }

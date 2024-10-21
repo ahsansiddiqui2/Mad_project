@@ -1,55 +1,37 @@
-import 'package:book_shopping_app/model/user_model.dart';
-import 'package:book_shopping_app/pages/home_page.dart';
-import 'package:book_shopping_app/pages/sign_up.dart';
-import 'package:book_shopping_app/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:book_shopping_app/provider/auth_provider.dart';
+import 'package:book_shopping_app/pages/home_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({Key? key}) : super(key: key);
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SignUpPageState extends State<SignUpPage> {
+  late TextEditingController _usernameController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
+  late TextEditingController _confirmPasswordController;
   final _formKey = GlobalKey<FormState>();
-  AuthProvider _authProvider = AuthProvider();
-
-  void signUp() {
-    String email = _emailController.text;
-    String password = _passwordController.text;
-
-    // Add your sign up logic here
-    print('Sign Up pressed. Email: $email, Password: $password');
-  }
-
-  void signIn() {
-    String email = _emailController.text;
-    String password = _passwordController.text;
-
-    // Add your sign in logic here
-    print('Sign In pressed. Email: $email, Password: $password');
-  }
-
-  void dispose() {
-    // Dispose controllers when not needed
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
+  CollectionReference users = FirebaseFirestore.instance.collection("users");
 
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController(text: "");
-    _passwordController = TextEditingController(text: "");
+    _usernameController = TextEditingController();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -70,9 +52,8 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // App Title
                   Text(
-                    'Book Store',
+                    'Sign Up',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 45,
@@ -81,8 +62,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
-
-                  // Login Card
                   Card(
                     elevation: 10,
                     shape: RoundedRectangleBorder(
@@ -94,6 +73,27 @@ class _LoginPageState extends State<LoginPage> {
                         key: _formKey,
                         child: Column(
                           children: [
+                            // Username Field
+                            TextFormField(
+                              controller: _usernameController,
+                              keyboardType: TextInputType.text,
+                              decoration: InputDecoration(
+                                labelText: 'Username',
+                                hintText: 'Enter your username',
+                                prefixIcon: const Icon(Icons.person),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a username';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+
                             // Email Field
                             TextFormField(
                               controller: _emailController,
@@ -134,9 +134,33 @@ class _LoginPageState extends State<LoginPage> {
                                 return null;
                               },
                             ),
+                            const SizedBox(height: 20),
+
+                            // Confirm Password Field
+                            TextFormField(
+                              controller: _confirmPasswordController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Confirm Password',
+                                hintText: 'Re-enter your password',
+                                prefixIcon: const Icon(Icons.lock),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please confirm your password';
+                                }
+                                if (value != _passwordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
+                            ),
                             const SizedBox(height: 30),
 
-                            // Login Button
+                            // Sign-Up Button
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
@@ -151,22 +175,25 @@ class _LoginPageState extends State<LoginPage> {
                                 if (_formKey.currentState!.validate()) {
                                   FocusScope.of(context).unfocus();
                                   try {
-                                    await _authProvider.signin(
-                                        _emailController.text,
-                                        _passwordController.text);
+                                    await authProvider.singup(
+                                      _emailController.text,
+                                      _passwordController.text,
+                                    );
+
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => HomePage()),
+                                      (route) => false,
+                                    );
                                   } catch (e) {
-                                    print("Sign-in error: $e");
+                                    print("Sign up failed: $e");
+                                    // Show error message to user
                                   }
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => HomePage()),
-                                  );
-                                  signIn();
                                 }
                               },
                               child: const Text(
-                                'Login',
+                                'Sign Up',
                                 style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -175,29 +202,13 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             const SizedBox(height: 20),
 
-                            // Forgot Password
+                            // Back to Login
                             GestureDetector(
                               onTap: () {
-                                _showForgotPasswordDialog(context);
+                                Navigator.pop(context);
                               },
                               child: const Text(
-                                'Forgot Password?',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Sign-Up Option
-                            GestureDetector(
-                              onTap: () {
-                                _navigateToSignUp(context);
-                              },
-                              child: const Text(
-                                'Don\'t have an account? Sign Up',
+                                'Already have an account? Login',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 14,
@@ -216,53 +227,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ],
       ),
-    );
-  }
-
-  // Show Forgot Password Dialog
-  void _showForgotPasswordDialog(BuildContext context) {
-    final TextEditingController _emailController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Forgot Password'),
-        content: TextField(
-          controller: _emailController,
-          decoration: const InputDecoration(
-            hintText: 'Enter your email',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (_emailController.text.isNotEmpty) {
-                Provider.of<AuthProvider>(context, listen: false)
-                    .sendPasswordResetEmail(_emailController.text);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password reset email sent')));
-              }
-            },
-            child: const Text('Send'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Navigate to Sign-Up Page (You need to create a sign-up page)
-  void _navigateToSignUp(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) =>
-              const SignUpPage()), // Replace with your SignUpPage
     );
   }
 }

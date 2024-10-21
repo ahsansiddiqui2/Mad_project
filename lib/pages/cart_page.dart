@@ -76,7 +76,6 @@ class CartPage extends StatelessWidget {
                 ),
               ),
 
-
               Padding(
                 padding: const EdgeInsets.all(36.0),
                 child: Container(
@@ -111,7 +110,11 @@ class CartPage extends StatelessWidget {
 
                       // pay now
                       GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => UpiPaymentScreen(price: double.parse(value.calculateTotal())),)),
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PaymentScreen(),
+                            )),
                         child: Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.green.shade200),
