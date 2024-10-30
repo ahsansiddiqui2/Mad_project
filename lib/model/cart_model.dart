@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class CartModel extends ChangeNotifier {
-  final List fic_Items = [
+  final List<List<dynamic>> fic_Items = [
     [
       "The Great Gatsby",
       "999",
@@ -34,10 +35,10 @@ class CartModel extends ChangeNotifier {
     ],
     ["Beloved", "799", "lib/images/fiction/beloved.jpeg", Colors.yellow],
     ["The Color Purple", "950", "lib/images/fiction/color.jpg", Colors.yellow],
-    ["Catch 22", "1250", "lib/images/fiction/catch.jpg", Colors.yellow]
+    ["Catch 22", "1250", "lib/images/fiction/catch.jpg", Colors.yellow],
   ];
 
-  final List com_Items = [
+  final List<List<dynamic>> com_Items = [
     ["The Naruto, Vol 1", "299", "lib/images/comics/naruto.jpg", Colors.green],
     ["The Spiderman", "559", "lib/images/comics/spiderman.jpg", Colors.yellow],
     ["Sunshine", "999", "lib/images/comics/sunshine.jpg", Colors.yellow],
@@ -60,10 +61,10 @@ class CartModel extends ChangeNotifier {
       "1700",
       "lib/images/comics/savage.jpg",
       Colors.green
-    ]
+    ],
   ];
 
-  final List fan_Items = [
+  final List<List<dynamic>> fan_Items = [
     ["The Dracula", "299", "lib/images/fantasy/dracula.jpg", Colors.green],
     ["The Last Dog", "559", "lib/images/fantasy/thelastdog.jpg", Colors.yellow],
     [
@@ -99,32 +100,49 @@ class CartModel extends ChangeNotifier {
     ],
   ];
 
-  List _cartItems = [];
-  get cartItems => _cartItems;
+  List<Map<String, dynamic>> _cartItems = []; // Changed to a list of maps
 
-  get shopItems => fic_Items;
-  get comicItems => com_Items;
-  get fanItems => fan_Items;
+  List<Map<String, dynamic>> get cartItems => _cartItems;
+
+  List<List<dynamic>> get shopItems => fic_Items;
+  List<List<dynamic>> get comicItems => com_Items;
+  List<List<dynamic>> get fanItems => fan_Items;
 
   // Fiction
   void addItemToCart(int index) {
-    _cartItems.add(fic_Items[index]);
+    _cartItems.add({
+      'title': fic_Items[index][0],
+      'price': fic_Items[index][1],
+      'image': fic_Items[index][2],
+      'color': fic_Items[index][3]
+          .toString(), // Convert Color to String if necessary
+    });
     notifyListeners();
   }
 
   // Comics
   void addItemToCartCom(int index) {
-    _cartItems.add(com_Items[index]);
+    _cartItems.add({
+      'title': com_Items[index][0],
+      'price': com_Items[index][1],
+      'image': com_Items[index][2],
+      'color': com_Items[index][3].toString(),
+    });
     notifyListeners();
   }
 
   // Fantasy
   void addItemToCartFan(int index) {
-    _cartItems.add(fan_Items[index]);
+    _cartItems.add({
+      'title': fan_Items[index][0],
+      'price': fan_Items[index][1],
+      'image': fan_Items[index][2],
+      'color': fan_Items[index][3].toString(),
+    });
     notifyListeners();
   }
 
-  // remove item from cart
+  // Remove item from cart
   void removeItemFromCart(int index) {
     _cartItems.removeAt(index);
     notifyListeners();
@@ -132,8 +150,8 @@ class CartModel extends ChangeNotifier {
 
   String calculateTotal() {
     double totalPrice = 0;
-    for (int i = 0; i < cartItems.length; i++) {
-      totalPrice += double.parse(cartItems[i][1]);
+    for (var item in cartItems) {
+      totalPrice += double.parse(item['price']);
     }
     return totalPrice.toStringAsFixed(2);
   }
@@ -149,7 +167,24 @@ class CartModel extends ChangeNotifier {
   static CartModel fromMap(Map<String, dynamic> map, String documentId) {
     return CartModel()
       .._cartItems = (map['cartItems'] as List<dynamic>? ?? []).map((item) {
-        return item as List<dynamic>; // Explicitly cast each item in the list
+        return item as Map<String, dynamic>; // Explicitly cast to Map
       }).toList();
+  }
+
+  Future<void> saveCartData(String uid) async {
+    try {
+      // Reference to the Firestore document
+      DocumentReference docRef =
+          FirebaseFirestore.instance.collection('carts').doc(uid);
+
+      // Saving the cart data
+      await docRef.set(
+          toMap(), SetOptions(merge: true)); // Use toMap() for cart items
+
+      print('Cart saved successfully');
+    } catch (e) {
+      print('Error saving cart: $e');
+      // Handle error appropriately
+    }
   }
 }

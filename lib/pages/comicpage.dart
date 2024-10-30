@@ -8,6 +8,8 @@ class ComicPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String uid = "user_uid"; // Replace this with the actual user UID
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -138,8 +140,14 @@ class ComicPage extends StatelessWidget {
                               ),
                               ElevatedButton(
                                 onPressed: () {
+                                  // Add item to cart
                                   Provider.of<CartModel>(context, listen: false)
                                       .addItemToCartCom(index);
+
+                                  // Save cart data to Firestore
+                                  Provider.of<CartModel>(context, listen: false)
+                                      .saveCartData(uid);
+
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
