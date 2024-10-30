@@ -5,7 +5,7 @@ import '../models/book.dart';
 class DetailsScreen extends StatefulWidget {
   final Book? book;
 
-  DetailsScreen({this.book});
+  const DetailsScreen({super.key, this.book});
 
   @override
   _DetailsScreenState createState() => _DetailsScreenState();
@@ -30,20 +30,20 @@ class _DetailsScreenState extends State<DetailsScreen> {
             children: [
               TextFormField(
                 initialValue: widget.book?.title,
-                decoration: InputDecoration(labelText: 'Book Title'),
+                decoration: const InputDecoration(labelText: 'Book Title'),
                 onSaved: (value) => title = value!,
               ),
               TextFormField(
                 initialValue: widget.book?.author,
-                decoration: InputDecoration(labelText: 'Author'),
+                decoration: const InputDecoration(labelText: 'Author'),
                 onSaved: (value) => author = value!,
               ),
               TextFormField(
                 initialValue: widget.book?.coverImage,
-                decoration: InputDecoration(labelText: 'Cover Image URL'),
+                decoration: const InputDecoration(labelText: 'Cover Image URL'),
                 onSaved: (value) => coverImage = value!,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Reminder Date Picker
               ListTile(
@@ -52,7 +52,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       ? 'Select Reminder Date'
                       : 'Reminder Date: ${reminderDate!.toLocal()}'.split(' ')[0],
                 ),
-                trailing: Icon(Icons.calendar_today),
+                trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
                   DateTime? pickedDate = await showDatePicker(
                     context: context,
@@ -75,7 +75,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       ? 'Select Reminder Time'
                       : 'Reminder Time: ${reminderTime!.format(context)}',
                 ),
-                trailing: Icon(Icons.access_time),
+                trailing: const Icon(Icons.access_time),
                 onTap: () async {
                   TimeOfDay? pickedTime = await showTimePicker(
                     context: context,
@@ -88,7 +88,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   }
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               // Save Button
               ElevatedButton(
@@ -97,8 +97,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     _formKey.currentState!.save();
 
                     // Set default reminder if no date or time is selected
-                    if (reminderDate == null) reminderDate = DateTime.now();
-                    if (reminderTime == null) reminderTime = TimeOfDay.now();
+                    reminderDate ??= DateTime.now();
+                    reminderTime ??= TimeOfDay.now();
 
                     // Combine date and time for reminderDateTime
                     final combinedDateTime = DateTime(
@@ -125,7 +125,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text('Save Book'),
+                child: const Text('Save Book'),
               ),
             ],
           ),

@@ -4,6 +4,8 @@ import '../models/book.dart';
 import 'details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -29,9 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Books')),
+      appBar: AppBar(title: const Text('Books')),
       body: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 3 / 3,
         ),
@@ -51,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   Image.network(book.coverImage, height: 120, fit: BoxFit.cover),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   Text(book.title),
                 ],
               ),
@@ -60,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
         onPressed: () {
           Navigator.push(
             context,
